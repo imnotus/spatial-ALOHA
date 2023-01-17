@@ -4,7 +4,7 @@ using namespace std;
 float inf = numeric_limits<float>::infinity();
 using ll = long long;
 const double radius = 10000;
-const double small_radius = 70;
+const double small_radius = 5000;
 const double GAMMA = pow(10, 6.0 / 10.0);
 const double end_time = 1000;
 constexpr double PI = 3.14159265358979323846264338;
@@ -26,7 +26,7 @@ struct terminal {
     int nearest_BS;
     //double gain;
     double coef[num_BS];
-    bool state; //0:wait  1:try to send
+    bool state; //True: in , False: out
 };
 
 struct BS {
@@ -88,10 +88,15 @@ void initialization(vector<terminal>& T_vec) {
     //BSの座標を設定
     vector<pair<double, double>> BS_pos(num_BS);
     for (int i = 0; i < num_BS; i++) BS_pos.at(i) = coordinate();
+    pair<double, double> origin = make_pair(0, 0); //原点座標
     
     //端末情報を初期化
     for (int i = 0; i < T_vec.size(); i++) {
         T_vec.at(i).pos = coordinate();
+        //内円の内部にあればTrue
+        if (cal_dst(origin, T_vec.at(i).pos) < small_radius) T_vec.at(i).state = true;
+        else T_vec.at(i).state = false;
+        
         T_vec.at(i).nearest_dst = inf;
         for (int j = 0; j < num_BS; j++) {
             //端末から各BSまでの距離を保存
@@ -112,11 +117,11 @@ void initialization(vector<terminal>& T_vec) {
 
 
 void simulation (vector<terminal>& T_vec, double Pr_ac) {
+    if (T_vec.size() == 0) return;
     double thp_sum = 0;
     bool p_flag[4] = {true, true, true, true};
     cout << "Progress is 0%";
     for (int t  = 0; t < end_time; t++) {
-        if (T_vec.size() == 0) break;
         vector<double> SI(num_BS, 0);
         //アクセスする端末を決定
         for (int i = 0; i < T_vec.size(); i++) {
@@ -128,7 +133,8 @@ void simulation (vector<terminal>& T_vec, double Pr_ac) {
             } else continue;
         }
         
-        for (int i = 0; i < num_BS; i++) {
+        for (int i = 0; i < T_vec.size(); i++) { //修正
+            if (!T_vec.at(i).state) continue;
             int x = T_vec.at(i).nearest_BS;
             double SINR = pow(T_vec.at(i).nearest_dst, 2 * pass_loss_exponent) * T_vec.at(i).coef[x] / SI.at(x);
             if (SINR > theta) thp_sum++;
@@ -153,7 +159,7 @@ void simulation (vector<terminal>& T_vec, double Pr_ac) {
 int main() {
     string filename = "SPALOHA.txt";
     outputfile.open(filename);
-    int num_terminal = 100000;
+    int num_terminal = 0;
     for (int i = 0; i < 10000; i++) {
         vector<terminal> T_vec(num_terminal);
         initialization(T_vec);
@@ -166,7 +172,7 @@ int main() {
         }
         outputfile << endl;
         cout << endl << endl;
-        num_terminal += 100;
+        num_terminal += 2000;
     }
     outputfile.close();
 }
