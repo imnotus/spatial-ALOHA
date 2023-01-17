@@ -118,26 +118,30 @@ void initialization(vector<terminal>& T_vec) {
 
 void simulation (vector<terminal>& T_vec, double Pr_ac) {
     if (T_vec.size() == 0) return;
-    double thp_sum = 0;
+    double success = 0, tried = 0;
     bool p_flag[4] = {true, true, true, true};
     cout << "Progress is 0%";
     for (int t  = 0; t < end_time; t++) {
         vector<double> SI(num_BS, 0);
+        vector<int> access;
         //アクセスする端末を決定
         for (int i = 0; i < T_vec.size(); i++) {
             double r = my_rand(0, 1);
             if (r < Pr_ac) {
+                access.push_back(i);
                 for (int j = 0; j < num_BS; j++) {
                     SI.at(j) += T_vec.at(i).coef[j];
                 }
             } else continue;
         }
+        tried += access.size();
         
-        for (int i = 0; i < T_vec.size(); i++) { //修正
-            if (!T_vec.at(i).state) continue;
-            int x = T_vec.at(i).nearest_BS;
-            double SINR = pow(T_vec.at(i).nearest_dst, 2 * pass_loss_exponent) * T_vec.at(i).coef[x] / SI.at(x);
-            if (SINR > theta) thp_sum++;
+        for (int i = 0; i < access.size(); i++) { //修正
+            int a = access.at(i);
+            if (!T_vec.at(a).state) continue;
+            int x = T_vec.at(a).nearest_BS;
+            double SIR = pow(T_vec.at(a).nearest_dst, 2 * pass_loss_exponent) * T_vec.at(a).coef[x] / SI.at(x);
+            if (SIR > theta) success++;
         }
                 
         //進捗状況を表示
@@ -149,7 +153,7 @@ void simulation (vector<terminal>& T_vec, double Pr_ac) {
     }
     cout << "...100%" << endl;
     
-    double throughput = thp_sum / end_time;
+    double throughput = success / tried;
     cout << throughput << endl << endl;
     outputfile << throughput;
 }
